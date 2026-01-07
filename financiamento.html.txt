@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistema de Financiamento</title>
+
+<style>
+body { font-family: Arial; background:#f2f2f2; margin:0; padding:10px; }
+h2 { text-align:center; }
+.card { background:#fff; border-radius:8px; padding:10px; margin-bottom:10px; }
+img { width:100%; border-radius:6px; }
+input, button { width:100%; padding:8px; margin-top:5px; }
+button { background:#25d366; color:#fff; border:none; border-radius:5px; font-size:16px; }
+small { color:#555; }
+</style>
+</head>
+
+<body>
+
+<h2>Estoque & Financiamento</h2>
+
+<input type="file" id="fileInput" accept=".txt">
+
+<div id="produtos"></div>
+
+<script>
+let produtos = [];
+
+document.getElementById('fileInput').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  const reader = new FileReader();
+  reader.onload = function(){
+    const linhas = reader.result.split('\n');
+    produtos = linhas.slice(1).map(l => {
+      const [codigo, desc, preco, estoque] = l.split(',');
+      return { codigo, desc, preco: parseFloat(preco), estoque };
+    });
+    render();
+  };
+  reader.readAsText(file);
+});
+
+function render(){
+  const div = document.getElementById('produtos');
+  div.innerHTML = '';
+  produtos.forEach(p => {
+    const img = `https://www.armazemparaiba.com.br/imagens/${p.codigo}.webp`;
+    div.innerHTML += `
+    <div class="card">
+      <img src="${img}" onerror="this.src='https://via.placeholder.com/300'">
+      <b>${p.desc}</b><br>
+      <small>Preço: R$ ${p.preco.toFixed(2)}</small>
+      <input placeholder="Entrada (opcional)" id="e${p.codigo}">
+      <input placeholder="Parcelas (até 12)" id="p${p.codigo}">
+      <button onclick="simular('${p.codigo}')">Simular e WhatsApp</button>
+    </div>`;
+  });
+}
+
+function simular(c){
+  const prod = produtos.find(p => p.codigo === c);
+  const entrada = parseFloat(document.getElementById('e'+c).value) || 0;
+  const parcelas = parseInt(document.getElementById('p'+c).value);
+  if(parcelas < 1 || parcelas > 12) return alert("Parcelas até 12");
+
+  const financiado = prod.preco - entrada;
+  const juros = financiado * 0.119 * parcelas;
+  const total = financiado + juros;
+  const parcela = total / parcelas;
+
+  const msg = `
+Produto: ${prod.desc}
+Preço: R$ ${prod.preco.toFixed(2)}
+Entrada: R$ ${entrada.toFixed(2)}
+Parcelas: ${parcelas}x de R$ ${parcela.toFixed(2)}
+Total: R$ ${total.toFixed(2)}
+Foto: https://www.armazemparaiba.com.br/imagens/${prod.codigo}.webp
+`;
+
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`);
+}
+</script>
+
+</body>
+</html>
